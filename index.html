@@ -43,9 +43,7 @@
     .roster-table td { padding: 10px 8px; border-bottom: 0.5px solid #e0dfd8; vertical-align: middle; }
     .roster-table tr:last-child td { border-bottom: none; }
     .lot-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
-    .lw { background:#E1F5EE; color:#085041; }
-    .lm { background:#E6F1FB; color:#0C447C; }
-    .lg { background:#F1EFE8; color:#5F5E5A; }
+    .lw{background:#E1F5EE;color:#085041;} .lm{background:#E6F1FB;color:#0C447C;} .lg{background:#F1EFE8;color:#5F5E5A;}
     .text-link { color: #185FA5; text-decoration: none; font-size: 13px; }
     .text-link:hover { text-decoration: underline; }
     .empty { text-align: center; padding: 2.5rem; color: #888780; font-size: 14px; }
@@ -88,6 +86,7 @@
     .when-pm { background:#FAEEDA; color:#633806; }
     .toast { background:#1a1a18; color:#fff; padding:8px 18px; border-radius:8px; font-size:13px; position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); opacity:0; transition:opacity .2s; pointer-events:none; z-index:99; white-space:nowrap; }
     .toast.show { opacity:1; }
+    .saving-indicator { font-size:12px; color:#888780; text-align:center; margin-top:8px; min-height:18px; }
     @media (max-width: 400px) {
       .opt-btn { font-size: 12px; padding: 9px 2px; }
       .day-row { grid-template-columns: 90px 1fr; }
@@ -159,6 +158,7 @@
           <div><label>Phone number</label><input id="r-phone" type="tel" placeholder="703-555-0123"/></div>
         </div>
         <button class="btn btn-full" onclick="addPerson()">+ Add to roster</button>
+        <div class="saving-indicator" id="manage-status"></div>
       </div>
     </div>
     <div class="card" style="padding:0">
@@ -166,7 +166,7 @@
       <div style="overflow-x:auto">
         <table class="roster-table">
           <thead><tr><th>Name</th><th>Preferred</th><th>Secondary</th><th>Passengers</th><th>Phone</th><th></th></tr></thead>
-          <tbody id="manage-body"><tr><td colspan="6" class="empty">No carpoolers yet</td></tr></tbody>
+          <tbody id="manage-body"><tr><td colspan="6" class="spinner">Loading roster...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -175,8 +175,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT='https://script.google.com/macros/s/AKfycbxPH4-tX6qxl_gXxj75kpg1a6oXl_wOr5lvW9qES52VdtehXpHoOyICCFHXVh0NmaPS/exec';
-const ROSTER_KEY='carpool_roster_v1', POLL_KEY='carpool_poll_v1';
+const SCRIPT='https://script.google.com/macros/s/AKfycbxzEYX4gOCGzF8Y16AL98tNd-V7IKaiCXJxyG05d3zCDr-ObL1sWHNibFnAz_ZcIYwK/exec';
+const POLL_KEY='carpool_poll_v1';
 const DAYS=[
   {key:'mon',label:'Monday',    opts:['Full day','AM only','PM only']},
   {key:'tue',label:'Tuesday',   opts:['Full day']},
@@ -191,13 +191,40 @@ const LOT_CLS={Warrenton:'lw',Manassas:'lm',Gainesville:'lg'};
 let roster=[],allPolls={},editingId=null,sels={};
 
 function loadLocal(){
-  try{roster=JSON.parse(localStorage.getItem(ROSTER_KEY)||'[]');}catch(e){roster=[];}
   try{allPolls=JSON.parse(localStorage.getItem(POLL_KEY)||'{}');}catch(e){allPolls={};}
 }
 function saveLocal(){
-  try{localStorage.setItem(ROSTER_KEY,JSON.stringify(roster));}catch(e){}
   try{localStorage.setItem(POLL_KEY,JSON.stringify(allPolls));}catch(e){}
 }
+
+async function loadRoster(){
+  try{
+    const res=await fetch(SCRIPT+'?action=getRoster&t='+Date.now());
+    const json=await res.json();
+    const rows=json.data||[];
+    if(rows.length<2||!rows[1]||!rows[1][0]){roster=[];renderManage();return;}
+    roster=rows.slice(1).filter(r=>r[0]).map(r=>({
+      id:r[0],name:r[1],pref:r[2],sec:r[3],seats:parseInt(r[4])||2,phone:r[5]||''
+    }));
+    renderManage();
+    populatePollSelect();
+  }catch(e){
+    roster=[];
+    document.getElementById('manage-body').innerHTML='<tr><td colspan="6" class="empty">Could not load roster — check your connection.</td></tr>';
+  }
+}
+
+async function saveRoster(){
+  document.getElementById('manage-status').textContent='Saving...';
+  try{
+    await fetch(SCRIPT+'?payload='+encodeURIComponent(JSON.stringify({action:'saveRoster',roster})),{method:'GET',mode:'no-cors'});
+    document.getElementById('manage-status').textContent='Roster saved.';
+    setTimeout(()=>document.getElementById('manage-status').textContent='',2500);
+  }catch(e){
+    document.getElementById('manage-status').textContent='Could not save — check your connection.';
+  }
+}
+
 function showView(v){
   ['today','poll','results','manage'].forEach((n,i)=>{
     document.getElementById('view-'+n).classList.toggle('active',n===v);
@@ -275,7 +302,7 @@ async function loadToday(){
 
 function renderManage(){
   const body=document.getElementById('manage-body');
-  if(!roster.length){body.innerHTML='<tr><td colspan="6" class="empty">No carpoolers yet</td></tr>';return;}
+  if(!roster.length){body.innerHTML='<tr><td colspan="6" class="empty">No carpoolers yet — add the first one above</td></tr>';return;}
   body.innerHTML=roster.map(p=>{
     if(editingId===p.id)return`<tr class="edit-row">
       <td><input id="e-name" value="${p.name}" style="min-width:100px"/></td>
@@ -291,12 +318,13 @@ function renderManage(){
   }).join('');
   populatePollSelect();
 }
+
 function addPerson(){
   const name=document.getElementById('r-name').value.trim();
   if(!name){document.getElementById('r-name').focus();return;}
   roster.push({id:Date.now(),name,pref:document.getElementById('r-pref').value,sec:document.getElementById('r-sec').value,seats:parseInt(document.getElementById('r-seats').value),phone:document.getElementById('r-phone').value.trim()});
   document.getElementById('r-name').value='';document.getElementById('r-phone').value='';
-  saveLocal();renderManage();toast('Carpooler added');
+  renderManage();saveRoster();toast('Carpooler added');
 }
 function startEdit(id){editingId=id;renderManage();}
 function cancelEdit(){editingId=null;renderManage();}
@@ -305,11 +333,11 @@ function saveEdit(id){
   p.name=document.getElementById('e-name').value.trim()||p.name;
   p.pref=document.getElementById('e-pref').value;p.sec=document.getElementById('e-sec').value;
   p.seats=parseInt(document.getElementById('e-seats').value);p.phone=document.getElementById('e-phone').value.trim();
-  editingId=null;saveLocal();renderManage();toast('Changes saved');
+  editingId=null;renderManage();saveRoster();toast('Changes saved');
 }
 function removePerson(id){
   if(!confirm('Remove this person from the roster?'))return;
-  roster=roster.filter(p=>p.id!==id);saveLocal();renderManage();
+  roster=roster.filter(p=>p.id!==id);renderManage();saveRoster();
 }
 function populatePollSelect(){
   const sel=document.getElementById('poll-person'),cur=sel.value;
@@ -351,7 +379,7 @@ async function saveAvailability(){
   const btn=document.getElementById('save-btn');
   btn.textContent='Saving...';btn.disabled=true;
   allPolls[id]=Object.assign({},sels);saveLocal();
-  const payload={action:'submit',name:person.name,phone:person.phone||'',
+  const payload={action:'submitPoll',name:person.name,phone:person.phone||'',
     mon:sels.mon||'Not going in',tue:sels.tue||'Not going in',
     wed:sels.wed||'Not going in',thu:sels.thu||'Not going in',fri:sels.fri||'Not going in'};
   try{
@@ -395,7 +423,7 @@ async function loadResults(){
 }
 document.getElementById('poll-week').textContent=getWeekLabel();
 document.getElementById('results-week').textContent=getWeekLabel();
-loadLocal();renderManage();loadToday();
+loadLocal();loadRoster();loadToday();
 </script>
 </body>
 </html>
