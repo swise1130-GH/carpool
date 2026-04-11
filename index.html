@@ -191,7 +191,15 @@ const LOT_CLS={Warrenton:'lw',Manassas:'lm',Gainesville:'lg'};
 let roster=[],allPolls={},editingId=null,sels={};
 
 function loadLocal(){
-  try{allPolls=JSON.parse(localStorage.getItem(POLL_KEY)||'{}');}catch(e){allPolls={};}
+  try{
+    const day=new Date().getDay();
+    if(day===0||day===6){
+      localStorage.removeItem(POLL_KEY);
+      allPolls={};
+    } else {
+      allPolls=JSON.parse(localStorage.getItem(POLL_KEY)||'{}');
+    }
+  }catch(e){allPolls={};}
 }
 function saveLocal(){
   try{localStorage.setItem(POLL_KEY,JSON.stringify(allPolls));}catch(e){}
