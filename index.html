@@ -175,7 +175,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT='https://script.google.com/macros/s/AKfycbxzEYX4gOCGzF8Y16AL98tNd-V7IKaiCXJxyG05d3zCDr-ObL1sWHNibFnAz_ZcIYwK/exec';
+const SCRIPT='https://script.google.com/macros/s/AKfycbwXjIDCWKYQQrTAGaNDcLBcmy0hTKFbJYsikt__YRF1j42LlaD4rz6wzsBvl-wfiURB/exec';
 const POLL_KEY='carpool_poll_v1';
 const DAYS=[
   {key:'mon',label:'Monday',    opts:['Full day','AM only','PM only']},
@@ -197,10 +197,31 @@ function saveLocal(){
   try{localStorage.setItem(POLL_KEY,JSON.stringify(allPolls));}catch(e){}
 }
 
+// JSONP fetch — bypasses CORS for Google Apps Script reads
+function jsonpFetch(url){
+  return new Promise((resolve,reject)=>{
+    const cb='_cb'+Date.now();
+    const script=document.createElement('script');
+    const timer=setTimeout(()=>{
+      delete window[cb];
+      document.body.removeChild(script);
+      reject(new Error('timeout'));
+    },10000);
+    window[cb]=function(data){
+      clearTimeout(timer);
+      delete window[cb];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+    script.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+    script.onerror=()=>{clearTimeout(timer);delete window[cb];reject(new Error('error'));};
+    document.body.appendChild(script);
+  });
+}
+
 async function loadRoster(){
   try{
-    const res=await fetch(SCRIPT+'?action=getRoster&t='+Date.now(),{redirect:'follow',mode:'cors'});
-    const json=await res.json();
+    const json=await jsonpFetch(SCRIPT+'?action=getRoster&t='+Date.now());
     const rows=json.data||[];
     if(rows.length<2||!rows[1]||!rows[1][0]){roster=[];renderManage();return;}
     roster=rows.slice(1).filter(r=>r[0]).map(r=>({
@@ -268,8 +289,7 @@ async function loadToday(){
   }
   card.innerHTML='<div class="spinner">Loading...</div>';
   try{
-    const res=await fetch(SCRIPT+'?t='+Date.now(),{redirect:'follow',mode:'cors'});
-    const json=await res.json();
+    const json=await jsonpFetch(SCRIPT+'?t='+Date.now());
     const rows=json.data||[];
     const data=rows.slice(1).filter(r=>r[0]);
     const dayIdx=DAY_ORDER.indexOf(todayKey);
@@ -397,8 +417,7 @@ async function loadResults(){
   c.innerHTML='<div class="spinner">Loading results...</div>';
   document.getElementById('results-week').textContent=getWeekLabel();
   try{
-   const res=await fetch(SCRIPT+'?t='+Date.now(),{redirect:'follow',mode:'cors'});
-    const json=await res.json();
+    const json=await jsonpFetch(SCRIPT+'?t='+Date.now());
     const rows=json.data||[];
     if(rows.length<2||!rows[1]||!rows[1][0]){c.innerHTML='<div class="empty">No submissions yet this week.</div>';return;}
     const data=rows.slice(1).filter(r=>r[0]);
