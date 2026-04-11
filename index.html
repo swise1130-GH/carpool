@@ -199,7 +199,7 @@ function saveLocal(){
 
 async function loadRoster(){
   try{
-    const res=await fetch(SCRIPT+'?action=getRoster&t='+Date.now());
+    const res=await fetch(SCRIPT+'?action=getRoster&t='+Date.now(),{redirect:'follow',mode:'cors'});
     const json=await res.json();
     const rows=json.data||[];
     if(rows.length<2||!rows[1]||!rows[1][0]){roster=[];renderManage();return;}
@@ -268,7 +268,7 @@ async function loadToday(){
   }
   card.innerHTML='<div class="spinner">Loading...</div>';
   try{
-    const res=await fetch(SCRIPT+'?t='+Date.now());
+    const res=await fetch(SCRIPT+'?t='+Date.now(),{redirect:'follow',mode:'cors'});
     const json=await res.json();
     const rows=json.data||[];
     const data=rows.slice(1).filter(r=>r[0]);
@@ -397,7 +397,7 @@ async function loadResults(){
   c.innerHTML='<div class="spinner">Loading results...</div>';
   document.getElementById('results-week').textContent=getWeekLabel();
   try{
-    const res=await fetch(SCRIPT+'?t='+Date.now());
+   const res=await fetch(SCRIPT+'?t='+Date.now(),{redirect:'follow',mode:'cors'});
     const json=await res.json();
     const rows=json.data||[];
     if(rows.length<2||!rows[1]||!rows[1][0]){c.innerHTML='<div class="empty">No submissions yet this week.</div>';return;}
