@@ -104,4 +104,4 @@ Engineers in the group are welcome to contribute improvements via pull request.
 
 ## Questions?
 
-Reach out to Scott or open an issue on this repository.
+Reach out to Sue or open an issue on this repository.
