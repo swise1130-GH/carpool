@@ -260,12 +260,12 @@ function toast(msg){
 }
 function getWeekLabel(){
   const now=new Date(),day=now.getDay();
-  const offset=day===0?1:day===6?2:0;
-  const diff=now.getDate()-day+(day===0?-6:1)+(offset*7);
+  const isWeekend=day===0||day===6;
+  const diff=now.getDate()-day+(day===0?-6:1)+(isWeekend?7:0);
   const mon=new Date(now);mon.setDate(diff);
   const fri=new Date(mon);fri.setDate(mon.getDate()+4);
   const fmt=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const prefix=offset>0?'Coming week: ':'Week of ';
+  const prefix=isWeekend?'Coming week: ':'Week of ';
   return prefix+`${fmt(mon)} – ${fmt(fri)}`;
 }
 function getTodayKey(){return['sun','mon','tue','wed','thu','fri','sat'][new Date().getDay()];}
