@@ -1,18 +1,18 @@
 # Carpool App — Gainesville / Haymarket Work Commute
 
-A lightweight web app that replaces the weekly WhatsApp poll for our carpool group. Built for ~25 associates who commute between Warrenton, Manassas, and Gainesville to a shared office.
+A lightweight web app that replaces the weekly WhatsApp poll for our carpool group. Initially built for ~25 associates who commute between Warrenton, Manassas, and Gainesville to a shared office in Tyson's.
 
 ---
 
 ## What it does
 
-The app solves a specific problem: when 4 people need to coordinate a same-day departure, all 28 people in the WhatsApp group get notified. This app keeps coordination quiet — only the people going in on a given day are surfaced to each other.
+The app solves a specific problem: it keeps a roster of carpoolers, understands their preference for any given week, and plans a schedule.  It allows for communication on any given day of that day's carpoolers keeping messaging to only those who need it.  This app keeps coordination quiet — only the people going in on a given day are surfaced to each other.
 
 **Four tabs:**
 
 - **Today** — Shows who is going in today, their phone number (tap to text), and a single button to open a blank group text to everyone going in. Used for real-time coordination like "can we leave at 2 instead of 4:45?"
 - **My week** — Each person selects their name and taps which days they're going in. Saves instantly to a shared Google Sheet visible to the whole group.
-- **Poll results** — Live view of everyone's submissions for the week, day by day, with names and vote counts. Works like the WhatsApp poll view but without notifying anyone.
+- **Poll results** — Live view of everyone's submissions for the week, day by day, with names and vote counts. Works like a basic WhatsApp poll view but without notifying anyone.
 - **Manage** — Admin area for adding, editing, and removing carpoolers. Not needed week to week.
 
 ---
