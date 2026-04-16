@@ -79,22 +79,23 @@
     .saving-indicator { font-size:12px; color:#888780; text-align:center; margin-top:8px; min-height:18px; }
 
     /* Schedule styles */
-    .sched-day { margin-bottom: 1.5rem; }
-    .sched-day-title { font-size: 16px; font-weight: 500; color: #1a1a18; margin-bottom: .75rem; display: flex; justify-content: space-between; align-items: center; }
+    .sched-day { margin-bottom: 1.75rem; }
+    .sched-day-title { font-size: 16px; font-weight: 500; color: #1a1a18; margin-bottom: .75rem; display: flex; justify-content: space-between; align-items: baseline; }
     .sched-day-count { font-size: 13px; color: #888780; font-weight: 400; }
     .sched-group { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 10px; margin-bottom: .75rem; overflow: hidden; }
-    .sched-group-head { padding: 10px 14px; background: #f5f4f0; border-bottom: 0.5px solid #e0dfd8; display: flex; justify-content: space-between; align-items: center; }
+    .sched-group-head { padding: 10px 14px; background: #f5f4f0; border-bottom: 0.5px solid #e0dfd8; display: flex; justify-content: space-between; align-items: baseline; }
     .sched-group-label { font-size: 13px; font-weight: 500; color: #1a1a18; }
     .sched-group-meta { font-size: 12px; color: #888780; }
     .sched-group-body { padding: 12px 14px; }
-    .sched-names { font-size: 14px; color: #1a1a18; line-height: 1.8; }
-    .sched-name-driver { font-weight: 500; }
-    .sched-star { color: #0F6E56; font-size: 13px; margin-left: 2px; }
-    .sched-cars { font-size: 12px; color: #888780; margin-top: 6px; }
-    .sched-warning { background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #633806; margin-top: 6px; }
-    .sched-moved { background: #F1EFE8; border: 0.5px solid #c8c7be; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #5F5E5A; margin-bottom: .75rem; }
-    .sched-no-one { font-size: 13px; color: #b4b2a9; padding: 8px 0; }
-    .sched-note { font-size: 11px; color: #b4b2a9; margin-top: 1rem; text-align: center; }
+    .sched-names { font-size: 14px; color: #1a1a18; line-height: 1.9; }
+    .sched-star { color: #0F6E56; font-size: 12px; }
+    .sched-cars { font-size: 12px; color: #888780; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #e0dfd8; }
+    .sched-warning { background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #633806; margin-top: 8px; }
+    .sched-no-submissions { font-size: 13px; color: #b4b2a9; padding: 4px 0; }
+    .sched-note { font-size: 11px; color: #b4b2a9; margin-top: 1rem; text-align: center; line-height: 1.6; }
+    .sched-time-label { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .5rem; margin-top: 1rem; }
+    .sched-time-label:first-child { margin-top: 0; }
+    .sched-time-sub { font-weight: 400; text-transform: none; letter-spacing: 0; color: #b4b2a9; margin-left: 6px; }
 
     @media (max-width: 400px) {
       .opt-btn { font-size: 12px; padding: 9px 2px; }
@@ -307,176 +308,126 @@ function getRosterPerson(name){
   return roster.find(p=>p.name===name)||null;
 }
 
-function formCars(people, carSize){
-  // Find all valid splits where every car has >= MIN_CAR people
-  // people = array of {name, seats}
-  const n = people.length;
-  if(n === 0) return [];
-  if(n < MIN_CAR) return [{people, warning:'below-minimum'}];
+function calcCarSplit(count, people){
+  // Find the most balanced valid split where every car >= MIN_CAR
+  // Returns string like "2 cars: one of 4, one of 3"
+  if(count < MIN_CAR) return null; // handled as warning
+  if(count <= 5) return null; // single car
 
-  // Find best split: minimize number of cars, each car >= MIN_CAR
-  // and each car <= max available seat count among drivers
   const maxSeats = Math.max(...people.map(p=>p.seats), MIN_CAR);
 
-  // Simple greedy: fill cars of up to maxSeats, minimum MIN_CAR
-  const cars = [];
-  let remaining = [...people];
-  while(remaining.length >= MIN_CAR){
-    const size = Math.min(remaining.length, maxSeats);
-    // If taking 'size' would leave fewer than MIN_CAR behind, adjust
-    const leftover = remaining.length - size;
-    const actualSize = leftover > 0 && leftover < MIN_CAR ? remaining.length - MIN_CAR : size;
-    const car = remaining.splice(0, Math.max(actualSize, MIN_CAR));
-    cars.push({people: car, warning: null});
-  }
-  // If any leftover can't form a valid car
-  if(remaining.length > 0 && remaining.length < MIN_CAR){
-    if(cars.length > 0){
-      // Merge into last car
-      cars[cars.length-1].people.push(...remaining);
-    } else {
-      cars.push({people: remaining, warning:'below-minimum'});
+  // Try splits from most balanced to least
+  const splits = [];
+  for(let carSize = MIN_CAR; carSize <= maxSeats; carSize++){
+    const numCars = Math.ceil(count / carSize);
+    const sizes = [];
+    let remaining = count;
+    for(let i = 0; i < numCars; i++){
+      const s = Math.min(remaining, carSize);
+      if(s < MIN_CAR && remaining < MIN_CAR * 2){
+        // merge into previous
+        if(sizes.length) sizes[sizes.length-1] += s;
+        else sizes.push(s);
+      } else {
+        sizes.push(s);
+      }
+      remaining -= s;
+      if(remaining <= 0) break;
     }
+    if(sizes.every(s=>s>=MIN_CAR)) splits.push(sizes);
   }
-  return cars;
+
+  if(!splits.length) return `${Math.ceil(count/MIN_CAR)} cars needed`;
+
+  // Pick most balanced split
+  const best = splits.reduce((a,b)=>{
+    const diffA = Math.max(...a) - Math.min(...a);
+    const diffB = Math.max(...b) - Math.min(...b);
+    return diffA <= diffB ? a : b;
+  });
+
+  if(best.length === 1) return null;
+  const carDesc = best.map(s=>`one of ${s}`).join(', ');
+  return `${best.length} cars: ${carDesc}`;
 }
 
-function renderCarGroup(groupPeople, groupLabel, movedNote){
+function renderGroup(groupPeople, lotLabel, timeLabel, timeNote){
   if(!groupPeople || groupPeople.length === 0) return '';
 
-  // Enrich with roster data
   const enriched = groupPeople.map(p=>{
     const r = getRosterPerson(p.name);
     return { name: p.name, seats: r ? r.seats : 2 };
   });
 
   const total = enriched.length;
-  const cars = formCars(enriched, Math.max(...enriched.map(p=>p.seats)));
+  const belowMin = total < MIN_CAR;
+  const carSplit = calcCarSplit(total, enriched);
 
-  // Car size summary
-  const carSummary = cars.length === 1
-    ? `1 car of ${cars[0].people.length}`
-    : cars.map((c,i)=>`car ${i+1} of ${c.people.length}`).join(', ');
+  // Names with stars for those who can drive 4+ (stars only meaningful for larger groups)
+  const namesHtml = enriched.map(p=>{
+    const showStar = p.seats >= 4;
+    return showStar
+      ? `${p.name}<span class="sched-star"> ★</span>`
+      : p.name;
+  }).join(', ');
 
-  const carsHtml = cars.map(car=>{
-    const carSize = car.people.length;
-    // Eligible drivers: seats >= carSize
-    const eligibleSeats = car.people.filter(p=>p.seats >= carSize);
-    const hasNoDriver = eligibleSeats.length === 0;
-
-    const namesHtml = car.people.map(p=>{
-      const isStar = p.seats >= carSize;
-      // Star only shown if car needs 4+ (everyone can drive 3)
-      const showStar = isStar && carSize >= 4;
-      return `<span class="sched-name-driver">${p.name}${showStar?'<span class="sched-star"> ★</span>':''}</span>`;
-    }).join(', ');
-
-    const driverNote = hasNoDriver && carSize >= 4
-      ? `<div class="sched-warning">⚠️ No one in this group has enough seats for ${carSize} people — coordinate a driver.</div>`
-      : '';
-
-    return `<div style="margin-bottom:${cars.length>1?'10px':'0'}">${namesHtml}${driverNote}</div>`;
-  }).join('');
-
-  const belowMin = cars.some(c=>c.warning==='below-minimum');
   const warningHtml = belowMin
-    ? `<div class="sched-warning">⚠️ Only ${total} ${total===1?'person':'people'} — below the 3-person express lane minimum. Coordinate with another group.</div>`
+    ? `<div class="sched-warning">⚠️ Only ${total} ${total===1?'person':'people'} — below the 3-person express lane minimum.</div>`
     : '';
 
-  const movedHtml = movedNote
-    ? `<div class="sched-moved">↩ ${movedNote}</div>`
+  const carsHtml = carSplit
+    ? `<div class="sched-cars">${carSplit}</div>`
+    : '';
+
+  const noDriverHtml = !belowMin && !enriched.some(p=>p.seats>=total)
+    ? `<div class="sched-warning">⚠️ No one has enough seats for all ${total} people — consider splitting or updating seat counts in Manage.</div>`
     : '';
 
   return `<div class="sched-group">
     <div class="sched-group-head">
-      <span class="sched-group-label">${groupLabel}</span>
-      <span class="sched-group-meta">${total} ${total===1?'person':'people'} · ${carSummary}</span>
+      <span class="sched-group-label">${lotLabel}</span>
+      <span class="sched-group-meta">${total} ${total===1?'person':'people'}</span>
     </div>
     <div class="sched-group-body">
-      ${movedHtml}${carsHtml}${warningHtml}
+      <div class="sched-names">${namesHtml}</div>
+      ${carsHtml}${warningHtml}${noDriverHtml}
     </div>
   </div>`;
 }
 
 function buildDaySchedule(dayIdx, pollData){
-  // Collect everyone going in on this day
-  const col = dayIdx + 1; // sheet column index
+  const col = dayIdx + 1;
   const going = pollData.filter(r=>r[col]&&r[col]!=='Not going in');
   if(!going.length) return null;
 
-  // Separate by time group
   const amPeople   = going.filter(r=>r[col]==='AM only').map(r=>({name:r[0]}));
   const fullPeople = going.filter(r=>r[col]==='Full day').map(r=>({name:r[0]}));
   const pmPeople   = going.filter(r=>r[col]==='PM only').map(r=>({name:r[0]}));
 
-  // Apply lot logic per time group
-  function applyLotLogic(people, label){
-    if(!people.length) return {groups:{}, moved:[]};
-    const byLot = {Warrenton:[], Manassas:[], Gainesville:[]};
-    const moved = [];
+  function applyLotLogic(people){
+    if(!people.length) return {Warrenton:[],Manassas:[],Gainesville:[]};
+    const byLot = {Warrenton:[],Manassas:[],Gainesville:[]};
     people.forEach(p=>{
       const rp = getRosterPerson(p.name);
-      const pref = rp ? rp.pref : 'Gainesville';
-      const sec  = rp ? rp.sec  : 'Gainesville';
-      byLot[pref] = byLot[pref] || [];
+      const pref = (rp && byLot[rp.pref] !== undefined) ? rp.pref : 'Gainesville';
       byLot[pref].push(p);
     });
-    // Move Warrenton/Manassas below 3 to Gainesville
+    // Move below-3 lots to Gainesville silently
     ['Warrenton','Manassas'].forEach(lot=>{
-      if(byLot[lot] && byLot[lot].length > 0 && byLot[lot].length < MIN_CAR){
-        const names = byLot[lot].map(p=>p.name).join(', ');
-        moved.push(`${names} moved from ${lot} to Gainesville (below 3-person minimum)`);
+      if(byLot[lot].length > 0 && byLot[lot].length < MIN_CAR){
         byLot['Gainesville'].push(...byLot[lot]);
         byLot[lot] = [];
       }
     });
-    return {groups: byLot, moved};
+    return byLot;
   }
 
   return {
     total: going.length,
-    am:   applyLotLogic(amPeople,   'AM only'),
-    full: applyLotLogic(fullPeople, 'Full day'),
-    pm:   applyLotLogic(pmPeople,   'PM only'),
+    am:   applyLotLogic(amPeople),
+    full: applyLotLogic(fullPeople),
+    pm:   applyLotLogic(pmPeople),
   };
-}
-
-function renderDaySchedule(dayName, schedule){
-  if(!schedule) return `<div class="sched-day">
-    <div class="sched-day-title">${dayName} <span class="sched-day-count">0 going in</span></div>
-    <p class="sched-no-one" style="color:#b4b2a9;font-size:13px;padding-left:2px">No one going in</p>
-  </div>`;
-
-  const sections = [
-    {data: schedule.am,   label: 'AM only',   time: '~7:30 departure · noon return'},
-    {data: schedule.full, label: 'Full day',   time: '8:10 departure · 4:45 return'},
-    {data: schedule.pm,   label: 'PM only',    time: 'Noon departure · ~5:00 return'},
-  ];
-
-  let html = `<div class="sched-day">
-    <div class="sched-day-title">${dayName} <span class="sched-day-count">${schedule.total} going in</span></div>`;
-
-  sections.forEach(sec=>{
-    const {groups, moved} = sec.data;
-    const lots = ['Warrenton','Manassas','Gainesville'];
-    const hasAny = lots.some(l=>groups[l]&&groups[l].length>0);
-    if(!hasAny) return;
-
-    html += `<div style="margin-bottom:.5rem;font-size:11px;font-weight:500;color:#888780;text-transform:uppercase;letter-spacing:.04em;">${sec.label} <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b4b2a9">${sec.time}</span></div>`;
-
-    // Show moved notices first
-    moved.forEach(m=>{
-      html += `<div class="sched-moved">↩ ${m}</div>`;
-    });
-
-    lots.forEach(lot=>{
-      if(!groups[lot]||!groups[lot].length) return;
-      html += renderCarGroup(groups[lot], lot, null);
-    });
-  });
-
-  html += `</div>`;
-  return html;
 }
 
 async function loadSchedule(){
@@ -491,14 +442,41 @@ async function loadSchedule(){
       return;
     }
     const pollData = rows.slice(1).filter(r=>r[0]);
+    const lots = ['Warrenton','Manassas','Gainesville'];
 
     let html = '';
     DAY_NAMES.forEach((day,i)=>{
       const schedule = buildDaySchedule(i, pollData);
-      html += renderDaySchedule(day, schedule);
+      if(!schedule){
+        html += `<div class="sched-day">
+          <div class="sched-day-title">${day} <span class="sched-day-count">0 going in</span></div>
+          <p class="sched-no-submissions">No one going in</p>
+        </div>`;
+        return;
+      }
+
+      html += `<div class="sched-day"><div class="sched-day-title">${day} <span class="sched-day-count">${schedule.total} going in</span></div>`;
+
+      const sections = [
+        {groups: schedule.am,   label: 'AM only',  note: '~7:30 departure · noon return'},
+        {groups: schedule.full, label: 'Full day',  note: '8:10 departure · 4:45 return'},
+        {groups: schedule.pm,   label: 'PM only',   note: 'Noon departure · ~5:00 return'},
+      ];
+
+      sections.forEach(sec=>{
+        const hasAny = lots.some(l=>sec.groups[l]&&sec.groups[l].length>0);
+        if(!hasAny) return;
+        html += `<div class="sched-time-label">${sec.label} <span class="sched-time-sub">${sec.note}</span></div>`;
+        lots.forEach(lot=>{
+          if(!sec.groups[lot]||!sec.groups[lot].length) return;
+          html += renderGroup(sec.groups[lot], lot, sec.label, sec.note);
+        });
+      });
+
+      html += `</div>`;
     });
 
-    html += `<p class="sched-note">★ Can drive this car size &nbsp;·&nbsp; Cars form at the lot based on arrival order &nbsp;·&nbsp; Suggested schedule only</p>`;
+    html += `<p class="sched-note">★ Can drive 4 or more &nbsp;·&nbsp; Warrenton &amp; Manassas need 3+ people to run — otherwise departs from Gainesville &nbsp;·&nbsp; Cars form at the lot · Suggested schedule only</p>`;
     c.innerHTML = html;
   }catch(e){
     c.innerHTML='<div class="empty">Could not load — check your connection and try again.</div>';
