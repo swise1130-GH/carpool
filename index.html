@@ -26,11 +26,13 @@
     .hint { font-size: 11px; color: #b4b2a9; margin-top: 3px; }
     input, select { width: 100%; padding: 8px 10px; font-size: 14px; border: 0.5px solid #c8c7be; border-radius: 8px; background: #fff; color: #1a1a18; font-family: inherit; appearance: none; -webkit-appearance: none; }
     input:focus, select:focus { outline: none; border-color: #888780; }
+    input:disabled, select:disabled { opacity: 0.5; background: #f5f4f0; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .full { grid-column: 1/-1; }
     .btn { padding: 8px 16px; font-size: 13px; background: transparent; border: 0.5px solid #c8c7be; border-radius: 8px; color: #1a1a18; cursor: pointer; font-family: inherit; }
     .btn:hover { background: #f5f4f0; }
     .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
     .btn-full { width: 100%; padding: 12px; font-size: 15px; margin-top: 4px; }
     .btn-info { border-color: #185FA5; color: #185FA5; }
     .btn-info:hover { background: #E6F1FB; }
@@ -61,6 +63,7 @@
     .banner { border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; display: none; line-height: 1.5; }
     .banner-ok { background:#E1F5EE; border:0.5px solid #9FE1CB; color:#085041; }
     .banner-err { background:#FCEBEB; border:0.5px solid #F7C1C1; color:#A32D2D; }
+    .banner-warn { background:#FAEEDA; border:0.5px solid #EF9F27; color:#633806; }
     .spinner { text-align:center; padding:2.5rem; font-size:13px; color:#888780; }
     .refresh-row { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.5rem; }
     .today-header { background:#f5f4f0; padding:14px 1rem; border-bottom:0.5px solid #e0dfd8; display:flex; justify-content:space-between; align-items:center; }
@@ -77,18 +80,14 @@
     .toast { background:#1a1a18; color:#fff; padding:8px 18px; border-radius:8px; font-size:13px; position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); opacity:0; transition:opacity .2s; pointer-events:none; z-index:99; white-space:nowrap; }
     .toast.show { opacity:1; }
     .saving-indicator { font-size:12px; color:#888780; text-align:center; margin-top:8px; min-height:18px; }
-
-    /* Schedule styles */
+    .roster-loading { text-align:center; padding:1rem; font-size:13px; color:#888780; }
     .sched-day { margin-bottom: 1.75rem; }
     .sched-day-title { font-size: 18px; font-weight: 700; color: #1a1a18; margin-bottom: .75rem; display: flex; justify-content: space-between; align-items: baseline; }
     .sched-day-count { font-size: 13px; color: #888780; font-weight: 400; }
     .sched-time-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; margin-top: 1rem; display: flex; align-items: center; gap: 8px; }
     .sched-time-label:first-child { margin-top: 0; }
-    /* AM only — sky blue, clearly lighter than full day green */
     .lbl-am   { color: #2980C4; }
-    /* Full day — solid dark green, clearly distinct */
     .lbl-full { color: #1D7A4F; }
-    /* PM only — warm amber, already distinct */
     .lbl-pm   { color: #B86A00; }
     .sched-time-sub { font-weight: 400; text-transform: none; letter-spacing: 0; color: #b4b2a9; font-size: 11px; }
     .sched-group { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 10px; margin-bottom: .75rem; overflow: hidden; }
@@ -102,7 +101,6 @@
     .sched-warning { background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #633806; margin-top: 8px; }
     .sched-no-submissions { font-size: 13px; color: #b4b2a9; padding: 4px 0; }
     .sched-note { font-size: 11px; color: #b4b2a9; margin-top: 1rem; text-align: center; line-height: 1.6; }
-
     @media (max-width: 400px) {
       .opt-btn { font-size: 12px; padding: 9px 2px; }
       .day-row { grid-template-columns: 90px 1fr; }
@@ -159,23 +157,24 @@
   <div id="view-manage" class="view">
     <h2>Manage roster</h2>
     <p class="subtitle">Add, edit, or remove carpoolers</p>
+    <div id="manage-warn" class="banner banner-warn" style="display:none"></div>
     <div class="card">
       <div class="card-head-plain">Add, edit, or remove carpoolers</div>
       <div class="card-body">
         <div class="form-grid">
-          <div class="full"><label>Full name</label><input id="r-name" type="text" placeholder="e.g. Jamie Rivera"/></div>
+          <div class="full"><label>Full name</label><input id="r-name" type="text" placeholder="e.g. Jamie Rivera" disabled/></div>
           <div><label>Preferred lot</label>
-            <select id="r-pref"><option value="Warrenton">Warrenton</option><option value="Manassas">Manassas</option><option value="Gainesville" selected>Gainesville</option></select></div>
+            <select id="r-pref" disabled><option value="Warrenton">Warrenton</option><option value="Manassas">Manassas</option><option value="Gainesville" selected>Gainesville</option></select></div>
           <div><label>Secondary lot</label>
-            <select id="r-sec"><option value="Gainesville" selected>Gainesville</option><option value="Manassas">Manassas</option><option value="Warrenton">Warrenton</option></select></div>
+            <select id="r-sec" disabled><option value="Gainesville" selected>Gainesville</option><option value="Manassas">Manassas</option><option value="Warrenton">Warrenton</option></select></div>
           <div><label>Passengers you can take</label>
-            <select id="r-seats"><option value="2" selected>2 passengers</option><option value="3">3 passengers</option><option value="4">4 passengers</option><option value="5">5 passengers</option></select>
-            <div class="hint">Minimum 2 expected</div></div>
-        <div><label>Phone number</label><input id="r-phone" type="tel" placeholder="703-555-0123" oninput="formatPhone(this)"/>
-<div class="hint">Format: 703-555-0123</div></div>
+            <select id="r-seats" disabled><option value="2" selected>2 passengers</option><option value="3">3 passengers</option><option value="4">4 passengers</option><option value="5">5 passengers</option></select>
+            <div class="hint">Not counting yourself as driver</div></div>
+          <div><label>Phone number</label><input id="r-phone" type="tel" placeholder="703-555-0123" oninput="formatPhone(this)" disabled/>
+            <div class="hint">Format: 703-555-0123</div></div>
         </div>
-        <button class="btn btn-full" onclick="addPerson()">+ Add & Save</button>
-        <div class="saving-indicator" id="manage-status"></div>
+        <button class="btn btn-full" id="add-btn" onclick="addPerson()" disabled>+ Add &amp; save</button>
+        <div class="saving-indicator" id="manage-status">Loading roster — please wait...</div>
       </div>
     </div>
     <div class="card" style="padding:0">
@@ -183,7 +182,7 @@
       <div style="overflow-x:auto">
         <table class="roster-table">
           <thead><tr><th>Name</th><th>Preferred</th><th>Secondary</th><th>Passengers</th><th>Phone</th><th></th></tr></thead>
-          <tbody id="manage-body"><tr><td colspan="6" class="spinner">Loading roster...</td></tr></tbody>
+          <tbody id="manage-body"><tr><td colspan="6" class="roster-loading">Loading roster...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -207,6 +206,8 @@ const DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const LOT_CLS={Warrenton:'lw',Manassas:'lm',Gainesville:'lg'};
 const MIN_CAR=3;
 let roster=[],allPolls={},editingId=null,sels={};
+let rosterLoaded=false;
+let rosterLoadedCount=0; // track how many we loaded from sheet
 
 function loadLocal(){
   try{
@@ -221,38 +222,99 @@ function jsonpFetch(url){
   return new Promise((resolve,reject)=>{
     const cb='_cb'+Date.now();
     const script=document.createElement('script');
-    const timer=setTimeout(()=>{delete window[cb];document.body.removeChild(script);reject(new Error('timeout'));},10000);
-    window[cb]=function(data){clearTimeout(timer);delete window[cb];document.body.removeChild(script);resolve(data);};
+    const timer=setTimeout(()=>{
+      delete window[cb];
+      if(document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('timeout'));
+    },20000); // 20 second timeout
+    window[cb]=function(data){
+      clearTimeout(timer);
+      delete window[cb];
+      if(document.body.contains(script)) document.body.removeChild(script);
+      resolve(data);
+    };
     script.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
-    script.onerror=()=>{clearTimeout(timer);delete window[cb];reject(new Error('error'));};
+    script.onerror=()=>{
+      clearTimeout(timer);
+      delete window[cb];
+      if(document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('error'));
+    };
     document.body.appendChild(script);
   });
 }
 
+function enableManageForm(){
+  ['r-name','r-pref','r-sec','r-seats','r-phone'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.disabled=false;
+  });
+  const btn=document.getElementById('add-btn');
+  if(btn) btn.disabled=false;
+  document.getElementById('manage-status').textContent='';
+}
+
+function disableManageForm(msg){
+  ['r-name','r-pref','r-sec','r-seats','r-phone'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.disabled=true;
+  });
+  const btn=document.getElementById('add-btn');
+  if(btn) btn.disabled=true;
+  if(msg) document.getElementById('manage-status').textContent=msg;
+}
+
 async function loadRoster(){
+  rosterLoaded=false;
+  disableManageForm('Loading roster — please wait...');
   try{
     const json=await jsonpFetch(SCRIPT+'?action=getRoster&t='+Date.now());
     const rows=json.data||[];
-    if(rows.length<2||!rows[1]||!rows[1][0]){roster=[];renderManage();return;}
+    if(rows.length<2||!rows[1]||!rows[1][0]){
+      roster=[];
+      rosterLoaded=true;
+      rosterLoadedCount=0;
+      renderManage();
+      enableManageForm();
+      return;
+    }
     roster=rows.slice(1).filter(r=>r[0]).map(r=>({
       id:r[0],name:r[1],pref:r[2],sec:r[3],
       seats:parseInt(r[4])||2,
       phone:r[5]||''
     }));
-    renderManage();populatePollSelect();
+    rosterLoaded=true;
+    rosterLoadedCount=roster.length;
+    renderManage();
+    populatePollSelect();
+    enableManageForm();
   }catch(e){
     roster=[];
-    document.getElementById('manage-body').innerHTML='<tr><td colspan="6" class="empty">Could not load roster — check your connection.</td></tr>';
+    rosterLoaded=false;
+    disableManageForm('');
+    document.getElementById('manage-body').innerHTML=
+      '<tr><td colspan="6" class="empty">Could not load roster — check your connection. <a href="#" onclick="loadRoster();return false;" style="color:#185FA5">Try again</a></td></tr>';
   }
 }
 
 async function saveRoster(){
+  // Safety check — never save if we have fewer people than we loaded
+  if(rosterLoaded && roster.length < rosterLoadedCount - 1){
+    const warn=document.getElementById('manage-warn');
+    warn.textContent=`⚠️ Save blocked — only ${roster.length} people in memory but ${rosterLoadedCount} were loaded. Please refresh and try again.`;
+    warn.style.display='block';
+    setTimeout(()=>warn.style.display='none',6000);
+    return;
+  }
   document.getElementById('manage-status').textContent='Saving...';
   try{
     await fetch(SCRIPT+'?payload='+encodeURIComponent(JSON.stringify({action:'saveRoster',roster})),{method:'GET',mode:'no-cors'});
-    document.getElementById('manage-status').textContent='Roster saved.';
+    rosterLoadedCount=roster.length;
+    document.getElementById('manage-status').textContent='Saved.';
     setTimeout(()=>document.getElementById('manage-status').textContent='',2500);
-  }catch(e){document.getElementById('manage-status').textContent='Could not save — check your connection.';}
+  }catch(e){
+    document.getElementById('manage-status').textContent='Could not save — check your connection.';
+  }
 }
 
 function showView(v){
@@ -290,53 +352,54 @@ function whenBadge(v){
   const cls=v==='PM only'?'when-pm':v==='AM only'?'when-am':'when-full';
   return`<span class="when-badge ${cls}">${v}</span>`;
 }
+function formatPhone(input){
+  let v=input.value.replace(/\D/g,'').slice(0,10);
+  if(v.length>=7) v=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+  else if(v.length>=4) v=v.slice(0,3)+'-'+v.slice(3);
+  input.value=v;
+}
 
 // ── Schedule logic ──────────────────────────────────────────────
-
 function getCarCapacity(name){
   const r=roster.find(p=>p.name===name);
-  return r ? r.seats+1 : 3; // passengers + driver = total capacity
+  return r ? r.seats+1 : 3;
 }
 
 function calcSplitDescription(total, people){
-  // Returns description like "2 cars: 5 + 4" or null for single car
-  // RULE: every car must have >= MIN_CAR people
-  if(total < MIN_CAR) return null;
-
+  if(total<=0) return null;
   const maxCap=Math.max(...people.map(p=>getCarCapacity(p.name)), MIN_CAR);
+  if(maxCap>=total) return null; // fits in one car
 
-  // If everyone fits in one car, no split needed
-  if(maxCap >= total) return null;
-
-  // Find best valid split — no car below MIN_CAR
-  // Use greedy approach: fill largest cars first, ensure remainder is valid
-  function validSplits(n, maxSize){
-    // Returns array of car sizes, all >= MIN_CAR, or null if impossible
-    if(n === 0) return [];
-    if(n < MIN_CAR) return null; // can't form a valid car
-    if(n <= maxSize) return [n]; // fits in one car
-
-    // Try each possible first car size from largest to MIN_CAR
-    for(let size = Math.min(n - MIN_CAR, maxSize); size >= MIN_CAR; size--){
-      const rest = validSplits(n - size, size);
-      if(rest !== null) return [size, ...rest];
+  // Recursive: find valid split where every car >= MIN_CAR
+  function validSplit(n, maxSize){
+    if(n===0) return [];
+    if(n<MIN_CAR) return null;
+    if(n<=maxSize) return [n];
+    // Try sizes from largest valid down to MIN_CAR
+    // Largest valid = n - MIN_CAR (must leave at least MIN_CAR for rest)
+    for(let size=Math.min(n-MIN_CAR, maxSize); size>=MIN_CAR; size--){
+      const rest=validSplit(n-size, size);
+      if(rest!==null) return [size,...rest];
     }
     return null;
   }
 
-  let split = validSplits(total, maxCap);
+  let split=validSplit(total, maxCap);
 
   if(!split){
-    // Absolute fallback: just divide evenly
-    const n = Math.ceil(total / maxCap);
-    const base = Math.floor(total / n);
-    const extra = total % n;
-    split = Array(n).fill(base).map((s,i) => i < extra ? s+1 : s);
+    // Absolute fallback: fill evenly, merge any remainder into last car
+    const n=Math.max(1, Math.floor(total/maxCap));
+    const base=Math.floor(total/n);
+    const extra=total%n;
+    split=Array(n).fill(base).map((s,i)=>i<extra?s+1:s);
+    // If any car is below MIN_CAR after split, merge into previous
+    while(split.length>1 && split[split.length-1]<MIN_CAR){
+      const last=split.pop();
+      split[split.length-1]+=last;
+    }
   }
 
-  if(split.length <= 1) return null;
-
-  // Sort largest first for display
+  if(!split||split.length<=1) return null;
   split.sort((a,b)=>b-a);
   return `${split.length} cars: ${split.join(' + ')}`;
 }
@@ -344,44 +407,26 @@ function calcSplitDescription(total, people){
 function renderGroup(groupPeople, lotLabel){
   if(!groupPeople||!groupPeople.length) return '';
   const total=groupPeople.length;
-
-  if(total < MIN_CAR){
-    return `<div class="sched-group">
-      <div class="sched-group-head">
-        <span class="sched-group-label">${lotLabel}</span>
-        <span class="sched-group-meta">${total} ${total===1?'person':'people'}</span>
-      </div>
+  if(total<MIN_CAR){
+    return`<div class="sched-group">
+      <div class="sched-group-head"><span class="sched-group-label">${lotLabel}</span><span class="sched-group-meta">${total} ${total===1?'person':'people'}</span></div>
       <div class="sched-group-body">
         <div class="sched-names">${groupPeople.map(p=>p.name).join(', ')}</div>
         <div class="sched-warning">⚠️ Only ${total} ${total===1?'person':'people'} — below the 3-person express lane minimum.</div>
       </div>
     </div>`;
   }
-
-  const splitDesc=calcSplitDescription(total, groupPeople);
-
-  // Stars: ★ next to anyone who can drive 4+ total (i.e. 3+ passengers in roster)
-  // No stars needed for 3-person groups — everyone qualifies
-  const needStars = total > MIN_CAR;
+  const splitDesc=calcSplitDescription(total,groupPeople);
+  const needStars=total>MIN_CAR;
   const namesHtml=groupPeople.map(p=>{
     const cap=getCarCapacity(p.name);
-    return needStars && cap >= 4
-      ? `${p.name}<span class="sched-star"> ★</span>`
-      : p.name;
+    return needStars&&cap>=4?`${p.name}<span class="sched-star"> ★</span>`:p.name;
   }).join(', ');
-
-  const splitHtml=splitDesc
-    ? `<div class="sched-cars">${splitDesc}</div>`
-    : '';
-
-  return `<div class="sched-group">
-    <div class="sched-group-head">
-      <span class="sched-group-label">${lotLabel}</span>
-      <span class="sched-group-meta">${total} ${total===1?'person':'people'}</span>
-    </div>
+  return`<div class="sched-group">
+    <div class="sched-group-head"><span class="sched-group-label">${lotLabel}</span><span class="sched-group-meta">${total} ${total===1?'person':'people'}</span></div>
     <div class="sched-group-body">
       <div class="sched-names">${namesHtml}</div>
-      ${splitHtml}
+      ${splitDesc?`<div class="sched-cars">${splitDesc}</div>`:''}
     </div>
   </div>`;
 }
@@ -410,55 +455,38 @@ async function loadSchedule(){
   try{
     const json=await jsonpFetch(SCRIPT+'?t='+Date.now());
     const rows=json.data||[];
-    if(rows.length<2||!rows[1]||!rows[1][0]){
-      c.innerHTML='<div class="empty">No submissions yet this week.</div>';
-      return;
-    }
+    if(rows.length<2||!rows[1]||!rows[1][0]){c.innerHTML='<div class="empty">No submissions yet this week.</div>';return;}
     const pollData=rows.slice(1).filter(r=>r[0]);
     const lots=['Warrenton','Manassas','Gainesville'];
     let html='';
-
     DAY_NAMES.forEach((day,i)=>{
       const col=i+1;
       const going=pollData.filter(r=>r[col]&&r[col]!=='Not going in');
       if(!going.length){
-        html+=`<div class="sched-day">
-          <div class="sched-day-title">${day} <span class="sched-day-count">0 going in</span></div>
-          <p class="sched-no-submissions">No one going in</p>
-        </div>`;
+        html+=`<div class="sched-day"><div class="sched-day-title">${day} <span class="sched-day-count">0 going in</span></div><p class="sched-no-submissions">No one going in</p></div>`;
         return;
       }
-
       const amPeople  =going.filter(r=>r[col]==='AM only').map(r=>({name:r[0]}));
       const fullPeople=going.filter(r=>r[col]==='Full day').map(r=>({name:r[0]}));
       const pmPeople  =going.filter(r=>r[col]==='PM only').map(r=>({name:r[0]}));
-
       html+=`<div class="sched-day"><div class="sched-day-title">${day} <span class="sched-day-count">${going.length} going in</span></div>`;
-
       const sections=[
         {people:amPeople,   label:'AM only',  cls:'lbl-am',   note:'~7:30 departure · noon return'},
         {people:fullPeople, label:'Full day',  cls:'lbl-full', note:'8:10 departure · 4:45 return'},
         {people:pmPeople,   label:'PM only',   cls:'lbl-pm',   note:'Noon departure · ~5:00 return'},
       ];
-
       let firstSection=true;
       sections.forEach(sec=>{
         if(!sec.people.length) return;
         const byLot=applyLotLogic(sec.people);
-        const hasAny=lots.some(l=>byLot[l]&&byLot[l].length>0);
-        if(!hasAny) return;
+        if(!lots.some(l=>byLot[l]&&byLot[l].length>0)) return;
         const mt=firstSection?'':'margin-top:1rem;';
         html+=`<div class="sched-time-label ${sec.cls}" style="${mt}">${sec.label} <span class="sched-time-sub">${sec.note}</span></div>`;
         firstSection=false;
-        lots.forEach(lot=>{
-          if(!byLot[lot]||!byLot[lot].length) return;
-          html+=renderGroup(byLot[lot], lot);
-        });
+        lots.forEach(lot=>{if(byLot[lot]&&byLot[lot].length) html+=renderGroup(byLot[lot],lot);});
       });
-
       html+=`</div>`;
     });
-
     html+=`<p class="sched-note">★ Can drive 4 or more &nbsp;·&nbsp; Warrenton &amp; Manassas need 3+ people — otherwise departs from Gainesville &nbsp;·&nbsp; Cars form at the lot &nbsp;·&nbsp; Suggested schedule only</p>`;
     c.innerHTML=html;
   }catch(e){
@@ -509,14 +537,17 @@ async function loadToday(){
 // ── Manage ──────────────────────────────────────────────────────
 function renderManage(){
   const body=document.getElementById('manage-body');
-  if(!roster.length){body.innerHTML='<tr><td colspan="6" class="empty">No carpoolers yet — add the first one above</td></tr>';return;}
+  if(!roster.length){
+    body.innerHTML='<tr><td colspan="6" class="empty">No carpoolers yet — add the first one above</td></tr>';
+    return;
+  }
   body.innerHTML=roster.map(p=>{
     if(editingId===p.id)return`<tr class="edit-row">
       <td><input id="e-name" value="${p.name}" style="min-width:100px"/></td>
       <td><select id="e-pref" style="min-width:95px">${lotOpts(p.pref)}</select></td>
       <td><select id="e-sec" style="min-width:95px">${lotOpts(p.sec)}</select></td>
       <td><select id="e-seats" style="min-width:105px">${seatOpts(p.seats)}</select></td>
-      <td><input id="e-phone" value="${p.phone||''}" style="min-width:105px"/></td>
+      <td><input id="e-phone" value="${p.phone||''}" style="min-width:105px" oninput="formatPhone(this)"/></td>
       <td><div class="actions"><button class="btn btn-sm" onclick="saveEdit(${p.id})">Save</button><button class="btn btn-sm" onclick="cancelEdit()">Cancel</button></div></td></tr>`;
     const ph=p.phone?`<a class="text-link" href="sms:${p.phone.replace(/\D/g,'')}">${p.phone}</a>`:'<span style="color:#b4b2a9">—</span>';
     return`<tr><td style="font-weight:500">${p.name}</td><td>${badge(p.pref)}</td><td>${badge(p.sec)}</td>
@@ -525,14 +556,15 @@ function renderManage(){
   }).join('');
   populatePollSelect();
 }
-function formatPhone(input){
-  let v=input.value.replace(/\D/g,'').slice(0,10);
-  if(v.length>=7) v=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
-  else if(v.length>=4) v=v.slice(0,3)+'-'+v.slice(3);
-  input.value=v;
-}function addPerson(){
+
+function addPerson(){
+  if(!rosterLoaded){toast('Roster still loading — please wait');return;}
   const name=document.getElementById('r-name').value.trim();
   if(!name){document.getElementById('r-name').focus();return;}
+  // Prevent duplicate names
+  if(roster.find(p=>p.name.toLowerCase()===name.toLowerCase())){
+    toast('This name already exists in the roster');return;
+  }
   roster.push({id:Date.now(),name,pref:document.getElementById('r-pref').value,sec:document.getElementById('r-sec').value,seats:parseInt(document.getElementById('r-seats').value),phone:document.getElementById('r-phone').value.trim()});
   document.getElementById('r-name').value='';document.getElementById('r-phone').value='';
   renderManage();saveRoster();toast('Carpooler added');
@@ -540,6 +572,7 @@ function formatPhone(input){
 function startEdit(id){editingId=id;renderManage();}
 function cancelEdit(){editingId=null;renderManage();}
 function saveEdit(id){
+  if(!rosterLoaded){toast('Roster still loading — please wait');return;}
   const p=roster.find(x=>x.id===id);if(!p)return;
   p.name=document.getElementById('e-name').value.trim()||p.name;
   p.pref=document.getElementById('e-pref').value;p.sec=document.getElementById('e-sec').value;
@@ -547,6 +580,7 @@ function saveEdit(id){
   editingId=null;renderManage();saveRoster();toast('Changes saved');
 }
 function removePerson(id){
+  if(!rosterLoaded){toast('Roster still loading — please wait');return;}
   if(!confirm('Remove this person from the roster?'))return;
   roster=roster.filter(p=>p.id!==id);renderManage();saveRoster();
 }
