@@ -171,7 +171,8 @@
           <div><label>Passengers you can take</label>
             <select id="r-seats"><option value="2" selected>2 passengers</option><option value="3">3 passengers</option><option value="4">4 passengers</option><option value="5">5 passengers</option></select>
             <div class="hint">Minimum 2 expected</div></div>
-          <div><label>Phone number</label><input id="r-phone" type="tel" placeholder="703-555-0123"/></div>
+        <div><label>Phone number</label><input id="r-phone" type="tel" placeholder="703-555-0123" oninput="formatPhone(this)"/>
+<div class="hint">Format: 703-555-0123</div></div>
         </div>
         <button class="btn btn-full" onclick="addPerson()">+ Add to roster</button>
         <div class="saving-indicator" id="manage-status"></div>
@@ -524,7 +525,12 @@ function renderManage(){
   }).join('');
   populatePollSelect();
 }
-function addPerson(){
+function formatPhone(input){
+  let v=input.value.replace(/\D/g,'').slice(0,10);
+  if(v.length>=7) v=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+  else if(v.length>=4) v=v.slice(0,3)+'-'+v.slice(3);
+  input.value=v;
+}function addPerson(){
   const name=document.getElementById('r-name').value.trim();
   if(!name){document.getElementById('r-name').focus();return;}
   roster.push({id:Date.now(),name,pref:document.getElementById('r-pref').value,sec:document.getElementById('r-sec').value,seats:parseInt(document.getElementById('r-seats').value),phone:document.getElementById('r-phone').value.trim()});
