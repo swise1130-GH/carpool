@@ -644,7 +644,12 @@ async function saveAvailability(){
   }catch(e){document.getElementById('banner-err').style.display='block';}
   btn.textContent='Save & share my availability';btn.disabled=false;
 }
-
+function clearPollSheet() {
+  const sheet = getOrCreateSheet('Poll');
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues();
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, headers[0].length).setValues(headers);
+}
 document.getElementById('poll-week').textContent=getWeekLabel();
 document.getElementById('sched-week').textContent=getWeekLabel();
 loadLocal();loadRoster();loadToday();
