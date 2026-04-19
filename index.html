@@ -210,7 +210,7 @@ const DAY_LABELS={mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri'};
 const DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const LOT_CLS={Warrenton:'lw',Manassas:'lm',Gainesville:'lg'};
 const MIN_CAR=3;
-let roster=[],allPolls={},editingId=null,sels={};
+let roster=[],allPolls={},editingId=null,sels={},savedSels={};
 let rosterLoaded=false;
 let rosterLoadedCount=0;
 
@@ -612,14 +612,22 @@ async function loadToday(){
 }
 
 // ── Poll ────────────────────────────────────────────────────────
+function setSaveBtn(enabled){
+  const btn=document.getElementById('save-btn');
+  btn.disabled=!enabled;
+  btn.style.opacity=enabled?'1':'0.45';
+  btn.style.cursor=enabled?'pointer':'not-allowed';
+}
 function onPersonChange(){
   const id=document.getElementById('poll-person').value;
   if(!id){document.getElementById('poll-section').style.display='none';return;}
   sels=allPolls[id]?Object.assign({},allPolls[id]):{};
+  savedSels=Object.assign({},sels);
   document.getElementById('poll-section').style.display='block';
   document.getElementById('banner-ok').style.display='none';
   document.getElementById('banner-err').style.display='none';
   renderDays();
+  setSaveBtn(false);
 }
 function renderDays(){
   document.getElementById('days-container').innerHTML=DAYS.map(d=>{
@@ -638,6 +646,7 @@ document.addEventListener('click',function(e){
   const key=btn.dataset.key,opt=btn.dataset.opt;
   if(sels[key]===opt){delete sels[key];}else{sels[key]=opt;}
   renderDays();
+  setSaveBtn(true);
 });
 async function saveAvailability(){
   const id=document.getElementById('poll-person').value;if(!id)return;
@@ -653,8 +662,10 @@ async function saveAvailability(){
     document.getElementById('banner-ok').style.display='block';
     document.getElementById('banner-err').style.display='none';
     setTimeout(()=>document.getElementById('banner-ok').style.display='none',4000);
+    savedSels=Object.assign({},sels);
+    setSaveBtn(false);
   }catch(e){document.getElementById('banner-err').style.display='block';}
-  btn.textContent='Save & share my availability';btn.disabled=false;
+  btn.textContent='Save & share my availability';
 }
 
 document.getElementById('poll-week').textContent=getWeekLabel();
