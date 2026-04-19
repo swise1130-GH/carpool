@@ -214,14 +214,26 @@ let roster=[],allPolls={},editingId=null,sels={};
 let rosterLoaded=false;
 let rosterLoadedCount=0;
 
+function getWeekKey(){
+  const now=new Date(),day=now.getDay();
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-day+(day===0?-6:1));
+  return mon.toISOString().slice(0,10);
+}
 function loadLocal(){
   try{
-    const day=new Date().getDay();
-    if(day===0||day===6){localStorage.removeItem(POLL_KEY);allPolls={};}
-    else{allPolls=JSON.parse(localStorage.getItem(POLL_KEY)||'{}');}
+    const stored=JSON.parse(localStorage.getItem(POLL_KEY)||'{}');
+    if(stored._week&&stored._week===getWeekKey()){
+      allPolls=stored.polls||{};
+    }else{
+      localStorage.removeItem(POLL_KEY);
+      allPolls={};
+    }
   }catch(e){allPolls={};}
 }
-function saveLocal(){try{localStorage.setItem(POLL_KEY,JSON.stringify(allPolls));}catch(e){}}
+function saveLocal(){
+  try{localStorage.setItem(POLL_KEY,JSON.stringify({_week:getWeekKey(),polls:allPolls}));}catch(e){}
+}
 
 function jsonpFetch(url){
   return new Promise((resolve,reject)=>{
@@ -644,6 +656,7 @@ async function saveAvailability(){
   }catch(e){document.getElementById('banner-err').style.display='block';}
   btn.textContent='Save & share my availability';btn.disabled=false;
 }
+
 document.getElementById('poll-week').textContent=getWeekLabel();
 document.getElementById('sched-week').textContent=getWeekLabel();
 loadLocal();loadRoster();loadToday();
